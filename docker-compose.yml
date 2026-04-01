@@ -1,0 +1,33 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: codeclarity_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: codeclarity
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7
+    container_name: codeclarity_redis
+    ports:
+      - "6379:6379"
+
+  celery_worker:
+    build: ./backend
+    container_name: codeclarity_celery
+    command: celery -A app.workers.celery_app worker --loglevel=info
+    volumes:
+      - ./backend:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /app
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/codeclarity
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=codeclarity-super-secret-key-change-this
+    depends_on:
+      - postgres
+      - redis
